@@ -46,35 +46,31 @@ export const TelegramService = {
         const data = await res.json();
         const current = StorageService.getTelegramSettings();
 
-        // Intelligent groupsList merge: preserve human-entered names
-        const groupMap = new Map<string, TelegramGroupItem>();
-        (current.groupsList || []).forEach(g => {
-          if (g && g.id) groupMap.set(g.id, g);
-        });
-        if (Array.isArray(data.groupsList)) {
-          data.groupsList.forEach((rg: any) => {
-            if (!rg || !rg.id) return;
-            const cur = groupMap.get(rg.id);
-            if (!cur) {
-              groupMap.set(rg.id, rg);
-            } else if ((!cur.name || cur.name.startsWith('جروب (')) && (rg.name && !rg.name.startsWith('جروب ('))) {
-              groupMap.set(rg.id, { ...cur, ...rg });
-            }
-          });
-        }
+        // Server is authoritative for groups and targetGroups
+        const serverGroupsList: TelegramGroupItem[] = Array.isArray(data.groupsList)
+          ? data.groupsList.map((g: any) => ({
+              id: String(g.id || '').trim(),
+              name: String(g.name || `جروب (${String(g.id).slice(-6)})`).trim(),
+              category: String(g.category || 'عام').trim(),
+              type: g.type || 'group',
+              memberCount: g.memberCount,
+              addedAt: g.addedAt || new Date().toISOString()
+            }))
+          : (current.groupsList || []);
 
-        const cleanGroups = Array.isArray(data.targetGroups) && data.targetGroups.length > 0
-          ? Array.from(new Set([...(current.targetGroups || []), ...data.targetGroups]))
-          : current.targetGroups;
+        const serverTargetGroups = Array.isArray(data.targetGroups)
+          ? data.targetGroups.map((s: any) => String(s).trim()).filter(Boolean)
+          : (current.targetGroups || []);
 
         const cleanToken = data.botToken && !data.botToken.startsWith('•••') ? data.botToken : current.botToken;
 
         const merged: TelegramBotSettings = {
           ...current,
           ...data,
-          targetGroups: cleanGroups,
-          groupsList: Array.from(groupMap.values()),
-          botToken: cleanToken
+          targetGroups: serverTargetGroups,
+          groupsList: serverGroupsList,
+          botToken: cleanToken,
+          webhookUrl: data.webhookUrl !== undefined ? data.webhookUrl : current.webhookUrl
         };
         StorageService.saveTelegramSettings(merged);
         return merged;
@@ -87,6 +83,79 @@ export const TelegramService = {
 
   async saveSettings(settings: TelegramBotSettings): Promise<{ success: boolean; error?: string }> {
     return await StorageService.saveTelegramSettingsAsync(settings);
+  },
+
+  async setWebhook(webhookUrl: string, token?: string): Promise<{ success: boolean; result?: any; webhookUrl?: string; error?: string; message?: string }> {
+    try {
+      const cleanUrl = webhookUrl.trim();
+      const adminToken = StorageService.getAdminToken();
+      const res = await fetch('/api/telegram/set-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { 'X-Admin-Token': adminToken } : {})
+        },
+        body: JSON.stringify({
+          webhookUrl: cleanUrl,
+          token: token && !token.startsWith('•••') ? token.trim() : undefined,
+          adminToken: adminToken || undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'فشل تسجيل الويب هوك مع سيرفرات تليجرام' };
+      }
+      // Update local storage
+      const current = this.getSettings();
+      StorageService.saveTelegramSettings({ ...current, webhookUrl: cleanUrl });
+      return data;
+    } catch (err: any) {
+      return { success: false, error: err.message || 'تعذر الاتصال بالخادم لتسجيل الويب هوك.' };
+    }
+  },
+
+  async getWebhookInfo(): Promise<{ success: boolean; info?: any; configuredWebhookUrl?: string; pollingActive?: boolean; error?: string }> {
+    try {
+      const adminToken = StorageService.getAdminToken();
+      const res = await fetch('/api/telegram/webhook-info', {
+        headers: {
+          ...(adminToken ? { 'X-Admin-Token': adminToken } : {})
+        }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'تعذر جلب معلومات الويب هوك.' };
+      }
+      return data;
+    } catch (err: any) {
+      return { success: false, error: err.message || 'تعذر الاتصال بالخادم.' };
+    }
+  },
+
+  async deleteWebhook(): Promise<{ success: boolean; result?: any; error?: string; message?: string }> {
+    try {
+      const adminToken = StorageService.getAdminToken();
+      const res = await fetch('/api/telegram/delete-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(adminToken ? { 'X-Admin-Token': adminToken } : {})
+        },
+        body: JSON.stringify({
+          adminToken: adminToken || undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'تعذر إلغاء الويب هوك.' };
+      }
+      // Update local storage
+      const current = this.getSettings();
+      StorageService.saveTelegramSettings({ ...current, webhookUrl: '' });
+      return data;
+    } catch (err: any) {
+      return { success: false, error: err.message || 'تعذر الاتصال بالخادم لإلغاء الويب هوك.' };
+    }
   },
 
   async testConnection(token: string): Promise<{ success: boolean; bot?: { username: string; first_name: string }; error?: string }> {

@@ -117,6 +117,7 @@ export interface TelegramBotSettings {
   groupsList?: TelegramGroupItem[]; // تفاصيل الجروبات بالأسماء والتصنيفات
   welcomeMessage?: string;
   platformBaseUrl?: string; // رابط المنصة الأساسي المستخدم في أزرار تليجرام
+  webhookUrl?: string; // رابط الويب هوك المسجل في تليجرام
 }
 
 export interface Participant {

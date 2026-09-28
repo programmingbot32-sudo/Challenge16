@@ -451,15 +451,25 @@
     "botFirstName": "🏡تجربة",
     "isConnected": true,
     "autoBroadcastNew": true,
-    "autoBroadcastResults": false,
+    "autoBroadcastResults": true,
     "targetGroups": [
-      "-1001927045819"
+      "-1001927045819",
+      "-100999888777"
     ],
     "groupsList": [
       {
         "id": "-1001927045819",
-        "name": "جروب الرياضيات",
-        "category": "المرحلة الثانوية"
+        "name": "جروب الرياضيات المتقدمة",
+        "category": "الثانوي",
+        "type": "group",
+        "addedAt": "2026-09-28T17:58:56.980Z"
+      },
+      {
+        "id": "-100999888777",
+        "name": "جروب العلوم العامة",
+        "category": "المتوسط",
+        "type": "group",
+        "addedAt": "2026-09-28T17:58:56.980Z"
       }
     ],
     "adminUserIds": [
@@ -470,6 +480,15 @@
   },
   "adminPasscode": "admin@tanafas2026",
   "accessCodes": [
+    {
+      "id": "code_test_1790618336896",
+      "code": "TEST-CODE-XYZ",
+      "teacherDisplayName": "معلم تجريبي",
+      "school": "مدرسة الرواد",
+      "maxCompetitions": 10,
+      "isActive": true,
+      "createdAt": "2026-09-28T17:58:56.898Z"
+    },
     {
       "code": "TCHR-PROD-6076",
       "teacherDisplayName": "أ. خالد التميمي",

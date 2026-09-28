@@ -233,24 +233,24 @@ export const AdminTelegramSettings: React.FC<AdminTelegramSettingsProps> = ({
         isConnected: true
       };
       setSettings(updated);
-      TelegramService.saveSettings(updated);
+      await TelegramService.saveSettings(updated);
       setConnectionStatus('success');
       setStatusMessage(`تم التحقق والاتصال بنجاح بالبوت: @${res.bot.username} (${res.bot.first_name})`);
-      onNotify('تم ربط بوت تليجرام بنجاح');
+      onNotify('تم ربط بوت تليجرام وحفظ الإعدادات بنجاح');
     } else {
       setConnectionStatus('error');
       setStatusMessage(res.error || 'فشل الاتصال بالبوت. تأكد من صحة الرمز من @BotFather.');
     }
   };
 
-  const handleToggleSetting = (field: keyof TelegramBotSettings) => {
+  const handleToggleSetting = async (field: keyof TelegramBotSettings) => {
     const updated = {
       ...settings,
       [field]: !settings[field]
     };
     setSettings(updated);
-    TelegramService.saveSettings(updated);
-    onNotify('تم حفظ الإعدادات');
+    await TelegramService.saveSettings(updated);
+    onNotify('تم حفظ وتحديث الإعدادات بنجاح');
   };
 
   // Auto fetch group name from Telegram API
@@ -517,22 +517,10 @@ export const AdminTelegramSettings: React.FC<AdminTelegramSettingsProps> = ({
 
     try {
       const webhookUrl = `${window.location.origin}/api/telegram/webhook`;
-      const adminToken = StorageService.getAdminToken();
-      const res = await fetch('/api/telegram/set-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(adminToken ? { 'X-Admin-Token': adminToken } : {})
-        },
-        body: JSON.stringify({
-          token: settings.botToken,
-          webhookUrl
-        })
-      });
-      const data = await res.json();
+      const data = await TelegramService.setWebhook(webhookUrl, settings.botToken);
       if (data.success) {
         setWebhookFeedback('تم تفعيل Webhook بنجاح! البوت الآن يستقبل أوامر الطلاب والجروبات مباشرة.');
-        onNotify('تم تفعيل استقبال رسائل البوت');
+        onNotify('تم تفعيل استقبال رسائل البوت بنجاح');
       } else {
         setWebhookFeedback(`فشل تفعيل Webhook: ${data.error || 'خطأ غير معروف'}`);
       }

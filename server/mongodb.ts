@@ -349,9 +349,10 @@ class DatabaseManager {
 
     if (this.isConnected && this.db) {
       try {
+        const { _id, ...cleanDoc } = competition as any;
         await this.db.collection('competitions').updateOne(
           { id: competition.id },
-          { $set: competition },
+          { $set: cleanDoc },
           { upsert: true }
         );
         return competition;
@@ -387,9 +388,19 @@ class DatabaseManager {
   public async deleteCompetition(id: string): Promise<boolean> {
     if (this.isConnected && this.db) {
       try {
-        const res = await this.db.collection('competitions').deleteOne({ id });
-        await this.db.collection('participants').deleteMany({ competitionId: id });
-        await this.db.collection('teams').deleteMany({ competitionId: id });
+        const comp = await this.db.collection('competitions').findOne({
+          $or: [{ id }, { webSlug: id }]
+        });
+        const targetId = comp?.id || id;
+        const res = await this.db.collection('competitions').deleteOne({
+          $or: [{ id: targetId }, { webSlug: targetId }]
+        });
+        await this.db.collection('participants').deleteMany({
+          $or: [{ competitionId: targetId }, { competitionId: id }]
+        });
+        await this.db.collection('teams').deleteMany({
+          $or: [{ competitionId: targetId }, { competitionId: id }]
+        });
         return res.deletedCount > 0;
       } catch (e: any) {
         console.warn('⚠️ MongoDB deleteCompetition error, falling back to local store:', e.message);
@@ -398,7 +409,7 @@ class DatabaseManager {
     }
 
     const initialLen = this.fallbackData.competitions.length;
-    this.fallbackData.competitions = this.fallbackData.competitions.filter(c => c.id !== id);
+    this.fallbackData.competitions = this.fallbackData.competitions.filter(c => c.id !== id && c.webSlug !== id);
     this.fallbackData.participants = this.fallbackData.participants.filter(p => p.competitionId !== id);
     this.fallbackData.teams = this.fallbackData.teams.filter(t => t.competitionId !== id);
     this.saveFallbackStore();
@@ -433,9 +444,10 @@ class DatabaseManager {
 
     if (this.isConnected && this.db) {
       try {
+        const { _id, ...cleanDoc } = result as any;
         await this.db.collection('participants').updateOne(
           { id: result.id },
-          { $set: result },
+          { $set: cleanDoc },
           { upsert: true }
         );
         return result;
@@ -607,9 +619,10 @@ class DatabaseManager {
 
     if (this.isConnected && this.db) {
       try {
+        const { _id, ...cleanDoc } = team as any;
         await this.db.collection('teams').updateOne(
           { id: team.id },
-          { $set: team },
+          { $set: cleanDoc },
           { upsert: true }
         );
         return team;
@@ -688,9 +701,10 @@ class DatabaseManager {
   public async saveBotSettings(settings: any): Promise<void> {
     if (this.isConnected && this.db) {
       try {
+        const { _id, ...cleanDoc } = settings as any;
         await this.db.collection('settings').updateOne(
           { key: 'telegram_bot' },
-          { $set: { key: 'telegram_bot', value: settings, updatedAt: new Date().toISOString() } },
+          { $set: { key: 'telegram_bot', value: cleanDoc, updatedAt: new Date().toISOString() } },
           { upsert: true }
         );
       } catch (e: any) {
@@ -767,9 +781,10 @@ class DatabaseManager {
 
     if (this.isConnected && this.db) {
       try {
+        const { _id, ...cleanDoc } = code as any;
         await this.db.collection('access_codes').updateOne(
           { id: code.id },
-          { $set: code },
+          { $set: cleanDoc },
           { upsert: true }
         );
       } catch (e: any) {
@@ -803,9 +818,14 @@ class DatabaseManager {
   }
 
   public async deleteAccessCode(id: string): Promise<boolean> {
+    const cleanId = String(id || '').trim();
+    if (!cleanId) return false;
+
     if (this.isConnected && this.db) {
       try {
-        const res = await this.db.collection('access_codes').deleteOne({ id });
+        const res = await this.db.collection('access_codes').deleteOne({
+          $or: [{ id: cleanId }, { code: cleanId }, { code: cleanId.toUpperCase() }]
+        });
         return res.deletedCount > 0;
       } catch (e: any) {
         console.warn('⚠️ MongoDB deleteAccessCode error, falling back to local store:', e.message);
@@ -813,7 +833,9 @@ class DatabaseManager {
       }
     }
     const initialLen = (this.fallbackData.accessCodes || []).length;
-    this.fallbackData.accessCodes = (this.fallbackData.accessCodes || []).filter((c: any) => c.id !== id);
+    this.fallbackData.accessCodes = (this.fallbackData.accessCodes || []).filter(
+      (c: any) => c.id !== cleanId && c.code?.toUpperCase() !== cleanId.toUpperCase()
+    );
     this.saveFallbackStore();
     return (this.fallbackData.accessCodes || []).length < initialLen;
   }
@@ -896,9 +918,10 @@ class DatabaseManager {
 
     if (this.isConnected && this.db) {
       try {
+        const { _id, ...cleanDoc } = domain as any;
         await this.db.collection('bank_domains').updateOne(
           { id: domain.id },
-          { $set: domain },
+          { $set: cleanDoc },
           { upsert: true }
         );
       } catch (e: any) {
@@ -988,9 +1011,10 @@ class DatabaseManager {
 
     if (this.isConnected && this.db) {
       try {
+        const { _id, ...cleanDoc } = question as any;
         await this.db.collection('bank_questions').updateOne(
           { id: question.id },
-          { $set: question },
+          { $set: cleanDoc },
           { upsert: true }
         );
       } catch (e: any) {
