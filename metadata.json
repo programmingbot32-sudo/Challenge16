@@ -1,0 +1,8 @@
+{
+  "name": "منصة المسابقات التعليمية",
+  "description": "منصة مسابقات تعليمية تفاعلية للطلاب والمعلمين مع لوحات تحكم وإحصائيات وشهادات فورية وتحديات معرفية",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
