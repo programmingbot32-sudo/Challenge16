@@ -7,6 +7,7 @@ import {
   TeamResult, 
   ManualCertificate,
   TelegramBotSettings,
+  TelegramGroupItem,
   CompetitionTeam,
   TeamMember,
   QuestionBankDomain,
@@ -1612,17 +1613,6 @@ export const StorageService = {
     const targetGroups = Array.isArray(saved.targetGroups) ? saved.targetGroups : [];
     const groupsList = Array.isArray(saved.groupsList) ? [...saved.groupsList] : [];
 
-    // Ensure all targetGroups have an entry in groupsList
-    targetGroups.forEach((id, idx) => {
-      if (!groupsList.some(g => g.id === id)) {
-        groupsList.push({
-          id,
-          name: `جروب (${id.slice(-6)})`,
-          category: 'عام'
-        });
-      }
-    });
-
     return {
       ...defaultSettings,
       ...saved,
@@ -1820,42 +1810,35 @@ export const StorageService = {
         }
       });
       if (teleRes.ok) {
-        const remoteTele = await teleRes.json();
-        if (remoteTele) {
+        const data = await teleRes.json();
+        if (data) {
           const current = this.getTelegramSettings();
-          const cleanGroups = Array.isArray(remoteTele.targetGroups)
-            ? remoteTele.targetGroups.filter((g: string) => g && !g.includes('1234567890'))
-            : current.targetGroups;
-          
-          // Merge groupsList smartly: preserve any custom names already in current
-          const groupMap = new Map<string, any>();
-          (current.groupsList || []).forEach(g => {
-            if (g && g.id) groupMap.set(g.id, g);
-          });
-          if (Array.isArray(remoteTele.groupsList)) {
-            remoteTele.groupsList.forEach((rg: any) => {
-              if (!rg || !rg.id) return;
-              const cur = groupMap.get(rg.id);
-              // Only overwrite if remote has a real custom name or cur doesn't exist
-              if (!cur) {
-                groupMap.set(rg.id, rg);
-              } else if ((!cur.name || cur.name.startsWith('جروب (')) && (rg.name && !rg.name.startsWith('جروب ('))) {
-                groupMap.set(rg.id, { ...cur, ...rg });
-              }
-            });
-          }
+          const serverGroupsList: TelegramGroupItem[] = Array.isArray(data.groupsList)
+            ? data.groupsList.map((g: any) => ({
+                id: String(g.id || '').trim(),
+                name: String(g.name || `جروب (${String(g.id).slice(-6)})`).trim(),
+                category: String(g.category || 'عام').trim(),
+                type: g.type || 'group',
+                memberCount: g.memberCount,
+                addedAt: g.addedAt || new Date().toISOString()
+              }))
+            : (current.groupsList || []);
 
-          const cleanToken = remoteTele.botToken && !remoteTele.botToken.startsWith('•••')
-            ? remoteTele.botToken
-            : current.botToken;
+          const serverTargetGroups = Array.isArray(data.targetGroups)
+            ? data.targetGroups.map((s: any) => String(s).trim()).filter(Boolean)
+            : (current.targetGroups || []);
 
-          setStored(KEYS.TELEGRAM_SETTINGS, {
+          const cleanToken = data.botToken && !data.botToken.startsWith('•••') ? data.botToken : current.botToken;
+
+          const merged: TelegramBotSettings = {
             ...current,
-            ...remoteTele,
-            targetGroups: cleanGroups,
-            groupsList: Array.from(groupMap.values()),
-            botToken: cleanToken
-          });
+            ...data,
+            targetGroups: serverTargetGroups,
+            groupsList: serverGroupsList,
+            botToken: cleanToken,
+            webhookUrl: data.webhookUrl !== undefined ? data.webhookUrl : current.webhookUrl
+          };
+          setStored(KEYS.TELEGRAM_SETTINGS, merged);
           updatedAny = true;
         }
       }
