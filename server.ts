@@ -530,6 +530,17 @@ async function startServer() {
     try {
       const team = req.body;
       team.competitionId = req.params.id;
+      if (!Array.isArray(team.members)) {
+        team.members = [];
+      }
+      if (team.leaderName && team.members.length === 0) {
+        team.members.push({
+          studentName: String(team.leaderName).trim(),
+          school: team.school || 'عام',
+          isLeader: true,
+          joinedAt: new Date().toISOString()
+        });
+      }
       const saved = await dbManager.saveTeam(team);
       res.json(saved);
     } catch (e: any) {
@@ -539,13 +550,17 @@ async function startServer() {
 
   app.post('/api/competitions/:id/teams/join', async (req: Request, res: Response) => {
     try {
-      const { teamCode, studentName, school } = req.body;
-      if (!teamCode || !studentName) {
+      const { teamCode, studentName, memberName, name, school } = req.body;
+      const targetName = String(studentName || memberName || name || '').trim();
+      if (!teamCode || !targetName) {
         return res.status(400).json({ error: 'كود الفريق واسم المستخدم مطلوبان' });
       }
       const team = await dbManager.getTeamByCode(req.params.id, teamCode);
       if (!team) {
         return res.status(404).json({ error: 'كود الفريق غير صحيح' });
+      }
+      if (!Array.isArray(team.members)) {
+        team.members = [];
       }
       if (team.isLocked) {
         return res.status(400).json({ error: 'عذراً، هذا الفريق مغلق ومكتمل' });
@@ -553,10 +568,10 @@ async function startServer() {
       if (team.members.length >= (team.maxMembers || 4)) {
         return res.status(400).json({ error: 'اكتمل الحد الأقصى لأعضاء هذا الفريق' });
       }
-      const existing = team.members.find(m => m.studentName.trim().toLowerCase() === studentName.trim().toLowerCase());
+      const existing = team.members.find(m => m.studentName && m.studentName.trim().toLowerCase() === targetName.toLowerCase());
       if (!existing) {
         team.members.push({
-          studentName: studentName.trim(),
+          studentName: targetName,
           school: school || team.school || 'عام',
           isLeader: false,
           joinedAt: new Date().toISOString()
@@ -3550,10 +3565,21 @@ ${items}
     });
     app.use(vite.middlewares);
   } else {
-    // Production mode (Render / Cloud Run): serve static assets from dist
+    // Production mode (Render / Cloud Run): serve static assets from dist with long-term caching
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      maxAge: '1y',
+      immutable: true,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache');
+        } else if (/\.(jpg|jpeg|png|webp|svg|gif|ico|woff2?|css|js)$/i.test(filePath)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      }
+    }));
     app.get('*', (req: Request, res: Response) => {
+      res.setHeader('Cache-Control', 'no-cache');
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

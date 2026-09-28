@@ -216,6 +216,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   src="/tanafas-achievement-recolored.jpg"
                   alt="تَنافُسْ - كأس الإنجاز والمعرفة"
                   loading="eager"
+                  fetchPriority="high"
                   decoding="async"
                   referrerPolicy="no-referrer"
                   width="800"
