@@ -111,36 +111,7 @@ export const AdminTelegramSettings: React.FC<AdminTelegramSettingsProps> = ({
     }
   }, [groupsList]);
 
-  // Keep state in sync with any storage updates across app tabs or modals
-  useEffect(() => {
-    const handleStorageUpdate = () => {
-      const fresh = TelegramService.getSettings();
-      setSettings(prev => {
-        // Smart merge
-        const map = new Map<string, TelegramGroupItem>();
-        (prev.groupsList || []).forEach(g => {
-          if (g && g.id) map.set(g.id, g);
-        });
-        (fresh.groupsList || []).forEach(g => {
-          if (g && g.id) {
-            const cur = map.get(g.id);
-            if (!cur || (!cur.name || cur.name.startsWith('جروب (')) && (g.name && !g.name.startsWith('جروب ('))) {
-              map.set(g.id, { ...cur, ...g });
-            } else if (!cur) {
-              map.set(g.id, g);
-            }
-          }
-        });
-        return {
-          ...prev,
-          ...fresh,
-          groupsList: Array.from(map.values())
-        };
-      });
-    };
-    window.addEventListener('storage_update', handleStorageUpdate);
-    return () => window.removeEventListener('storage_update', handleStorageUpdate);
-  }, []);
+
 
   useEffect(() => {
     // Sync active public competitions to server so bot webhook can serve students immediately
@@ -194,19 +165,28 @@ export const AdminTelegramSettings: React.FC<AdminTelegramSettingsProps> = ({
     });
   }, [competitions]);
 
-  const handleSavePlatformUrl = async () => {
-    const cleanUrl = platformUrlInput.trim().replace(/\/+$/, '');
+  // Platform Base URL save handler
+  const handleSavePlatformUrl = async (urlToSave?: string) => {
+    const rawUrl = urlToSave !== undefined ? urlToSave : platformUrlInput;
+    const cleanUrl = rawUrl.trim().replace(/\/+$/, '');
     if (!cleanUrl) {
       onNotify('يرجى كتابة رابط المنصة.');
       return;
     }
+    setPlatformUrlInput(cleanUrl);
     const updated: TelegramBotSettings = {
       ...settings,
       platformBaseUrl: cleanUrl
     };
     setSettings(updated);
     await TelegramService.saveSettings(updated);
-    onNotify('تم حفظ رابط المنصة الأساسي بنجاح');
+    onNotify('تم حفظ وتثبيت رابط المنصة الأساسي بنجاح');
+  };
+
+  const handleUseCurrentUrl = () => {
+    const currentOrigin = window.location.origin.replace(/\/+$/, '');
+    setPlatformUrlInput(currentOrigin);
+    handleSavePlatformUrl(currentOrigin);
   };
 
   const handleTestAndSaveToken = async () => {
@@ -708,7 +688,7 @@ export const AdminTelegramSettings: React.FC<AdminTelegramSettingsProps> = ({
                 </label>
                 <button
                   type="button"
-                  onClick={() => setPlatformUrlInput(window.location.origin)}
+                  onClick={handleUseCurrentUrl}
                   className="text-[11px] font-bold text-[#0EA5E9] hover:underline cursor-pointer"
                 >
                   استخدام رابط الصفحة الحالي
@@ -725,7 +705,7 @@ export const AdminTelegramSettings: React.FC<AdminTelegramSettingsProps> = ({
                 />
                 <button
                   type="button"
-                  onClick={handleSavePlatformUrl}
+                  onClick={() => handleSavePlatformUrl()}
                   className="px-4 h-10 bg-[#0EA5E9] hover:bg-[#0284C7] text-white rounded-xl text-xs font-black cursor-pointer shadow-xs transition-colors"
                 >
                   حفظ الرابط

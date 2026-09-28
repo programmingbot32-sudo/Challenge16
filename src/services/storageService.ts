@@ -1635,8 +1635,8 @@ export const StorageService = {
   },
 
   async saveTelegramSettingsAsync(settings: TelegramBotSettings): Promise<{ success: boolean; error?: string }> {
-    setStored(KEYS.TELEGRAM_SETTINGS, settings);
     try {
+      localStorage.setItem(KEYS.TELEGRAM_SETTINGS, JSON.stringify(settings));
       const adminToken = this.getAdminToken();
       const res = await fetch('/api/telegram/settings', {
         method: 'POST',
@@ -1649,15 +1649,15 @@ export const StorageService = {
       if (res.ok) {
         const data = await res.json();
         if (data.settings) {
-          const current = this.getTelegramSettings();
           const cleanToken = data.settings.botToken && !data.settings.botToken.startsWith('•••')
             ? data.settings.botToken
-            : current.botToken;
-          setStored(KEYS.TELEGRAM_SETTINGS, {
-            ...current,
+            : settings.botToken;
+          const merged: TelegramBotSettings = {
+            ...settings,
             ...data.settings,
             botToken: cleanToken
-          });
+          };
+          localStorage.setItem(KEYS.TELEGRAM_SETTINGS, JSON.stringify(merged));
         }
         return { success: true };
       }
