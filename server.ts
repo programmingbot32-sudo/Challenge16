@@ -2211,12 +2211,7 @@ async function startServer() {
     msg += `━━━━━━━━━━━━━━━━━━\n`;
     msg += `👇 اضغط أدناه لبدء التقييم الذاتي الممتع فوراً:`;
 
-    const allComps = await dbManager.getCompetitions();
-    const trainingComp: any = allComps.find(c => c.competitionType === 'open') || {
-      id: 'comp-question-bank',
-      webSlug: 'question-bank-assessment'
-    };
-    const trainingUrl = `${baseUrl}/?quiz=${encodeURIComponent(trainingComp.webSlug || trainingComp.id || 'question-bank-assessment')}`;
+    const trainingUrl = `${baseUrl}/?quiz=question-bank-assessment`;
 
     await callTelegramApi(telegramSettings.botToken, 'sendMessage', {
       chat_id: chatId,

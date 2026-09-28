@@ -63,9 +63,13 @@ export default function App() {
       const quizParam = params.get('quiz') || params.get('comp');
       const teacherCode = params.get('teacher') || params.get('teacherCode') || params.get('code');
       const hasTeacherPortal = params.get('portal') === 'teacher' || params.get('teacher') === 'true' || window.location.hash === '#teacher';
+      const hasBankParam = params.get('portal') === 'bank' || params.get('view') === 'bank' || params.get('view') === 'training' || params.get('bank') === '1' || window.location.hash === '#bank';
 
       if (hasAdminParam) {
         setActivePage('admin_panel');
+      } else if (hasBankParam) {
+        setSelectedQuizSlug('question-bank-assessment');
+        setActivePage('student_quiz');
       } else if (teacherCode && teacherCode !== 'true') {
         handleLoginAsTeacherCode(teacherCode);
       } else if (hasTeacherPortal) {

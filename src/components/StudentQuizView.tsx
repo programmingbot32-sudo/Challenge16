@@ -751,7 +751,13 @@ export const StudentQuizView: React.FC<StudentQuizViewProps> = ({
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  if (competition?.isQuestionBank || initialCompetitionIdOrSlug === 'comp-question-bank' || initialCompetitionIdOrSlug === 'question-bank-assessment') {
+  if (
+    competition?.isQuestionBank ||
+    initialCompetitionIdOrSlug === 'comp-question-bank' ||
+    initialCompetitionIdOrSlug === 'question-bank-assessment' ||
+    initialCompetitionIdOrSlug === 'bank' ||
+    initialCompetitionIdOrSlug === 'training'
+  ) {
     return <QuestionBankView onBackToHome={onBackToHome} />;
   }
 
