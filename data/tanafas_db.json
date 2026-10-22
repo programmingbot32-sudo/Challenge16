@@ -446,9 +446,9 @@
   "participants": [],
   "teams": [],
   "botSettings": {
-    "botToken": "6353300696:AAHsCnGq3PV_6gzsUlUDef55-_CExpM3bng",
-    "botUsername": "Aqar1bot",
-    "botFirstName": "🏡تجربة",
+    "botToken": "",
+    "botUsername": "",
+    "botFirstName": "",
     "isConnected": true,
     "autoBroadcastNew": true,
     "autoBroadcastResults": true,
