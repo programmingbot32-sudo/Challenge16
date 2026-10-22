@@ -278,7 +278,7 @@ async function startServer() {
         targetGroups: cleanGroups,
         groupsList: rawGroupsList,
         adminUserIds: rawAdmins,
-        botToken: savedBotSettings.botToken || telegramSettings.botToken
+        botToken: process.env.TELEGRAM_BOT_TOKEN || savedBotSettings.botToken || telegramSettings.botToken
       };
       console.log('🤖 Telegram Bot settings successfully loaded from database store.');
     }
@@ -1153,7 +1153,8 @@ async function startServer() {
           ...telegramSettings,
           ...saved,
           groupsList: finalGroupsList,
-          targetGroups: finalTargetGroups
+          targetGroups: finalTargetGroups,
+          botToken: process.env.TELEGRAM_BOT_TOKEN || saved.botToken || telegramSettings.botToken
         };
       }
     } catch {}
@@ -3258,7 +3259,7 @@ ${items}
           telegramSettings = {
             ...telegramSettings,
             ...freshBot,
-            botToken: freshBot.botToken || telegramSettings.botToken,
+            botToken: process.env.TELEGRAM_BOT_TOKEN || freshBot.botToken || telegramSettings.botToken,
             targetGroups: Array.isArray(freshBot.targetGroups) && freshBot.targetGroups.length > 0 ? freshBot.targetGroups : telegramSettings.targetGroups
           };
         }
@@ -3624,7 +3625,7 @@ ${items}
           telegramSettings = {
             ...telegramSettings,
             ...fresh,
-            botToken: fresh.botToken || telegramSettings.botToken,
+            botToken: process.env.TELEGRAM_BOT_TOKEN || fresh.botToken || telegramSettings.botToken,
             targetGroups: Array.isArray(fresh.targetGroups) ? fresh.targetGroups : telegramSettings.targetGroups
           };
         }
